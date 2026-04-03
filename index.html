@@ -106,15 +106,27 @@
       </div>
       <div class="interval-sub" id="intervalSub">하루 0회 예상</div>
     </div>
-    <input type="range" id="intervalSlider" min="1" max="8" step="1" value="2">
-    <div class="range-ticks">
-      <span>30분</span><span>1시간</span><span>1.5h</span>
-      <span>2시간</span><span>2.5h</span><span>3시간</span>
-      <span>3.5h</span><span>4시간</span>
+    <div class="picker-wrapper">
+      <div class="picker-container" id="intervalPicker">
+        <div class="picker-item" data-val="30">30분</div>
+        <div class="picker-item" data-val="60">1시간</div>
+        <div class="picker-item" data-val="90">1.5시간</div>
+        <div class="picker-item" data-val="120">2시간</div>
+        <div class="picker-item" data-val="150">2.5시간</div>
+        <div class="picker-item" data-val="180">3시간</div>
+        <div class="picker-item" data-val="210">3.5시간</div>
+        <div class="picker-item" data-val="240">4시간</div>
+      </div>
+      <div class="picker-selection"></div>
     </div>
+    <div class="picker-hint">위아래로 밀어서 선택</div>
   </div>
 
-  <button class="toggle-btn inactive" id="toggleBtn" onclick="toggleAlarm()">알림 켜기</button>
+  <div class="test-section">
+    <button class="test-btn" id="testPushBtn">🔔 알림 테스트 (5초 후)</button>
+  </div>
+  
+  <button class="toggle-btn inactive" id="toggleBtn" onclick="toggleAlarm()">알림 시작하기</button>
 
 </div>
 

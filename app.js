@@ -124,17 +124,84 @@ function buildSelects() {
     updateActiveSummary();
   });
 
-  document.getElementById('intervalSlider').addEventListener('input', e => {
-    const steps = [30, 60, 90, 120, 150, 180, 210, 240];
-    state.interval = steps[parseInt(e.target.value) - 1];
+  const picker = document.getElementById('intervalPicker');
+  picker.addEventListener('scroll', () => {
+    clearTimeout(picker._timer);
+    picker._timer = setTimeout(() => updateFromPicker(), 150);
+  });
+  
+  // Test Button
+  document.getElementById('testPushBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('testPushBtn');
+    btn.disabled = true;
+    btn.textContent = '5초 대기 중... 홈 화면으로 나가보세요!';
+    
+    // Request permission if needed
+    if ('Notification' in window && Notification.permission !== 'granted') {
+      await Notification.requestPermission();
+    }
+    
+    setTimeout(() => {
+      triggerTestNotification();
+      btn.disabled = false;
+      btn.textContent = '🔔 알림 테스트 (5초 후)';
+    }, 5000);
+  });
+
+  // Initial picker position
+  setTimeout(() => syncPickerToValue(), 100);
+}
+
+function updateFromPicker() {
+  const picker = document.getElementById('intervalPicker');
+  const items = picker.querySelectorAll('.picker-item');
+  const center = picker.scrollTop + 60;
+  let closest = items[0];
+  let minDiff = Math.abs(items[0].offsetTop + 20 - center);
+  
+  items.forEach(item => {
+    const diff = Math.abs(item.offsetTop + 20 - center);
+    if (diff < minDiff) { minDiff = diff; closest = item; }
+    item.classList.remove('selected');
+  });
+  
+  closest.classList.add('selected');
+  const val = parseInt(closest.dataset.val);
+  if (state.interval !== val) {
+    state.interval = val;
     localStorage.setItem(KEYS.interval, state.interval);
     if (state.active) scheduleNext();
     updateIntervalDisplay();
-    updateActiveSummary();
+  }
+}
+
+function syncPickerToValue() {
+  const picker = document.getElementById('intervalPicker');
+  const items = picker.querySelectorAll('.picker-item');
+  items.forEach(item => {
+    if (parseInt(item.dataset.val) === state.interval) {
+      picker.scrollTop = item.offsetTop - 40;
+      item.classList.add('selected');
+    } else {
+      item.classList.remove('selected');
+    }
   });
-  const sliderSteps = [30,60,90,120,150,180,210,240];
-  const sliderIdx = sliderSteps.indexOf(state.interval);
-  document.getElementById('intervalSlider').value = (sliderIdx >= 0 ? sliderIdx : 1) + 1;
+}
+
+function triggerTestNotification() {
+  if ('serviceWorker' in navigator && swReg) {
+    swReg.showNotification('🔔 테스트 알림입니다!', {
+      body: '물 마시기 알림 앱이 정상적으로 작동하고 있어요.',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: 'test-push',
+    });
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('🔔 테스트 알림 (일반)', {
+      body: '서비스 워커 없이 일반 알림으로 발송되었습니다.',
+      icon: '/icon-192.png',
+    });
+  }
 }
 
 /* ── Render All ── */
