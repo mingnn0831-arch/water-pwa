@@ -27,14 +27,14 @@ self.addEventListener('push', e => {
   const now = new Date();
   const currentMin = now.getHours() * 60 + now.getMinutes();
 
-  const inActiveWindow = sleepMin > wakeMin
+  const inInactiveWindow = sleepMin > wakeMin
     ? currentMin >= wakeMin && currentMin < sleepMin
     : currentMin >= wakeMin || currentMin < sleepMin;
 
-  if (!inActiveWindow) return;
+  if (inInactiveWindow) return;
 
   e.waitUntil(
-    self.registration.showNotification('💧 물 마실 시간이에요!', {
+    self.registration.showNotification('물 마실 시간이에요!', {
       body: '지금 물 한 잔 마셔요. 건강한 하루를 위해!',
       icon: '/icon-192.png',
       badge: '/icon-192.png',

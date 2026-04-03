@@ -35,20 +35,7 @@
     알림 권한이 필요합니다. 브라우저 설정에서 알림을 허용해 주세요.
   </div>
 
-  <div class="countdown-section">
-    <div class="countdown-ring">
-      <svg class="ring-svg" width="180" height="180" viewBox="0 0 180 180">
-        <circle class="ring-track" cx="90" cy="90" r="80"/>
-        <circle class="ring-progress inactive" cx="90" cy="90" r="80"/>
-      </svg>
-      <div class="countdown-inner">
-        <div class="countdown-num" id="countdownNum">--:--</div>
-        <div class="countdown-label">다음 알림까지</div>
-      </div>
-    </div>
-    <div class="next-alarm-text" id="nextAlarmText"></div>
-    <div class="sleep-notice" id="sleepNotice"></div>
-  </div>
+  <!-- Countdown section removed as requested -->
 
   <div class="stats-row">
     <div class="stat-card">
@@ -65,10 +52,9 @@
     </div>
   </div>
 
-  <div class="card">
     <div class="card-label">
-      알림 활성 시간
-      <span class="badge-sleep">수면 제외</span>
+      알림 비활성 시간
+      <span class="badge-sleep">알림 안 옴</span>
     </div>
 
     <div class="timeline-wrap">
@@ -84,17 +70,17 @@
 
     <div class="time-row">
       <div class="time-col">
-        <div class="time-col-lbl">기상 시각</div>
+        <div class="time-col-lbl">시작 시간</div>
         <select class="time-select" id="wakeSelect"></select>
       </div>
       <div class="time-arrow">→</div>
       <div class="time-col">
-        <div class="time-col-lbl">취침 시각</div>
+        <div class="time-col-lbl">종료 시간</div>
         <select class="time-select" id="sleepSelect"></select>
       </div>
     </div>
 
-    <div class="active-summary" id="activeSummary"></div>
+    <!-- Summary removed as requested -->
   </div>
 
   <div class="card">
@@ -108,14 +94,17 @@
     </div>
     <div class="picker-wrapper">
       <div class="picker-container" id="intervalPicker">
+        <div class="picker-item" data-val="20">20분</div>
         <div class="picker-item" data-val="30">30분</div>
-        <div class="picker-item" data-val="60">1시간</div>
-        <div class="picker-item" data-val="90">1.5시간</div>
-        <div class="picker-item" data-val="120">2시간</div>
-        <div class="picker-item" data-val="150">2.5시간</div>
-        <div class="picker-item" data-val="180">3시간</div>
-        <div class="picker-item" data-val="210">3.5시간</div>
-        <div class="picker-item" data-val="240">4시간</div>
+        <div class="picker-item" data-val="40">40분</div>
+        <div class="picker-item" data-val="50">50분</div>
+        <div class="picker-item" data-val="60">60분</div>
+        <div class="picker-item" data-val="70">70분</div>
+        <div class="picker-item" data-val="80">80분</div>
+        <div class="picker-item" data-val="90">90분</div>
+        <div class="picker-item" data-val="100">100분</div>
+        <div class="picker-item" data-val="110">110분</div>
+        <div class="picker-item" data-val="120">120분</div>
       </div>
       <div class="picker-selection"></div>
     </div>

@@ -189,16 +189,17 @@ function syncPickerToValue() {
 }
 
 function triggerTestNotification() {
-  if ('serviceWorker' in navigator && swReg) {
-    swReg.showNotification('🔔 테스트 알림입니다!', {
-      body: '물 마시기 알림 앱이 정상적으로 작동하고 있어요.',
+  const title = '물 마실 시간이에요!';
+  if ('serviceWorker' in navigator && swReg?.active) {
+    swReg.showNotification(title, {
+      body: '알림 테스트입니다. 정상적으로 작동하고 있어요!',
       icon: '/icon-192.png',
       badge: '/icon-192.png',
       tag: 'test-push',
     });
-  } else if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('🔔 테스트 알림 (일반)', {
-      body: '서비스 워커 없이 일반 알림으로 발송되었습니다.',
+  } else if (Notification.permission === 'granted') {
+    new Notification(title, {
+      body: '테스트 알림입니다.',
       icon: '/icon-192.png',
     });
   }
@@ -271,30 +272,17 @@ function addTlSegment(bar, left, width, type) {
   bar.appendChild(el);
 }
 
-/* ── Active Summary ── */
+/* ── Summary ── */
 function updateActiveSummary() {
-  const ah = calcActiveHours();
-  const hh = Math.floor(ah);
-  const mm = Math.round((ah - hh) * 60);
-  const maxC = calcMaxCount();
-  const parts = [];
-  if (hh > 0) parts.push(hh + '시간');
-  if (mm > 0) parts.push(mm + '분');
-  document.getElementById('activeSummary').innerHTML =
-    `활성 <strong>${parts.join(' ')}</strong> · 최대 <strong>${maxC}회</strong> 알림 가능`;
+  // UI section removed as requested
 }
 
 /* ── Interval Display ── */
 function updateIntervalDisplay() {
   const min = state.interval;
-  if (min < 60) {
-    document.getElementById('intervalVal').textContent = '30';
-    document.getElementById('intervalUnit').textContent = '분마다';
-  } else {
-    document.getElementById('intervalVal').textContent = min / 60 % 1 === 0 ? min / 60 : (min / 60).toFixed(1);
-    document.getElementById('intervalUnit').textContent = '시간마다';
-  }
-  document.getElementById('intervalSub').textContent = '하루 ' + calcMaxCount() + '회 예상';
+  document.getElementById('intervalVal').textContent = min;
+  document.getElementById('intervalUnit').textContent = '분마다';
+  document.getElementById('intervalSub').textContent = '하루 ' + calcMaxCount() + '회 호출됨';
 }
 
 /* ── Toggle ── */
@@ -380,8 +368,8 @@ async function subscribeAndSendToServer() {
       body: JSON.stringify({
         subscription: sub,
         interval: state.interval,
-        wakeMin: state.wakeMin,
-        sleepMin: state.sleepMin,
+        wakeMin: state.wakeMin,  // This is now "Inactive Start"
+        sleepMin: state.sleepMin, // This is now "Inactive End"
       }),
     });
   } catch(e) { console.warn('Push subscription failed:', e); }
@@ -413,51 +401,40 @@ function clearCountdownTimer() {
 }
 
 function updateCountdown() {
-  const numEl = document.getElementById('countdownNum');
-  const subEl = document.getElementById('nextAlarmText');
-  const noticeEl = document.getElementById('sleepNotice');
-  const ring = document.querySelector('.ring-progress');
+  // UI section removed as requested
+}
 
-  if (!state.active || !state.nextTime) {
-    numEl.textContent = '--:--';
-    subEl.textContent = '';
-    noticeEl.textContent = '';
-    ring.style.strokeDashoffset = 502;
-    ring.classList.remove('sleep');
-    ring.classList.add('inactive');
-    return;
-  }
-
+function isInActiveWindow() {
   const now = new Date();
-  const diff = Math.max(0, state.nextTime - now);
-  const totalMs = state.interval * 60 * 1000;
-  const mm = Math.floor(diff / 60000);
-  const ss = Math.floor((diff % 60000) / 1000);
-  numEl.textContent = String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
-
-  const progress = 1 - diff / totalMs;
-  const offset = 502 * (1 - progress);
-  ring.style.strokeDashoffset = Math.max(0, offset);
-
-  const inActive = isInActiveWindow();
-  if (inActive) {
-    ring.classList.remove('inactive', 'sleep');
-    subEl.textContent = '다음 알림 ' + formatTime(state.nextTime) + ' 예정';
-    noticeEl.textContent = '';
-  } else {
-    ring.classList.add('sleep');
-    ring.classList.remove('inactive');
-    subEl.textContent = '활성 시간 외';
-    noticeEl.textContent = '💤 수면 시간 · ' + formatTime(new Date(state.wakeMin * 60000 - (new Date().getTimezoneOffset() * 60000 * -1))) + ' 기상 후 알림 시작';
-  }
+  const cur = now.getHours() * 60 + now.getMinutes();
+  const start = state.wakeMin, end = state.sleepMin;
+  
+  // start = Inactive Start, end = Inactive End
+  const isInactive = end > start
+    ? (cur >= start && cur < end)
+    : (cur >= start || cur < end);
+    
+  return !isInactive;
 }
 
 /* ── Local Fallback Notification ── */
 function triggerLocalNotification() {
   if (!isInActiveWindow()) return;
-  if (Notification.permission === 'granted') {
-    new Notification('💧 물 마실 시간이에요!', {
-      body: '지금 물 한 잔 마셔요. 건강한 하루를 위해!',
+  
+  const title = '물 마실 시간이에요!';
+  const body = '지금 물 한 잔 마셔요. 건강한 하루를 위해!';
+  
+  if ('serviceWorker' in navigator && swReg?.active) {
+    swReg.showNotification(title, {
+      body: body,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: 'water-reminder',
+      renotify: true,
+    });
+  } else if (Notification.permission === 'granted') {
+    new Notification(title, {
+      body: body,
       icon: '/icon-192.png',
       tag: 'water-reminder',
     });
@@ -473,13 +450,16 @@ function isInActiveWindow() {
 }
 
 function calcActiveHours() {
-  const w = state.wakeMin, s = state.sleepMin;
-  const diff = s > w ? s - w : (1440 - w) + s;
-  return diff / 60;
+  const start = state.wakeMin, end = state.sleepMin;
+  const inactiveMin = end > start ? end - start : (1440 - start) + end;
+  const activeMin = 1440 - inactiveMin;
+  return activeMin / 60;
 }
 
 function calcMaxCount() {
-  return Math.floor(calcActiveHours() / (state.interval / 60));
+  const ah = calcActiveHours();
+  const intervalH = state.interval / 60;
+  return Math.floor(ah / intervalH);
 }
 
 function formatTime(date) {
