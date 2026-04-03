@@ -7,11 +7,5 @@
         { "key": "Cache-Control", "value": "no-cache" }
       ]
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/send-push",
-      "schedule": "0 0 * * *"
-    }
   ]
 }
