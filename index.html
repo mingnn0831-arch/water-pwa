@@ -91,6 +91,7 @@
     </div>
     <div class="picker-wrapper">
       <div class="picker-container" id="intervalPicker">
+        <div class="picker-spacer"></div>
         <div class="picker-item" data-val="20">20분</div>
         <div class="picker-item" data-val="30">30분</div>
         <div class="picker-item" data-val="40">40분</div>
@@ -108,6 +109,7 @@
         <div class="picker-item" data-val="160">160분</div>
         <div class="picker-item" data-val="170">170분</div>
         <div class="picker-item" data-val="180">180분</div>
+        <div class="picker-spacer"></div>
       </div>
       <div class="picker-selection"></div>
     </div>
@@ -120,24 +122,24 @@
     <button class="test-link" id="testPushBtn">알림 테스트 (5초 후)</button>
   </div>
 
-</div>
-
-<!-- Time Picker Modal -->
-<div class="modal-overlay" id="timeModal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <span class="modal-title" id="modalTitle">알림 시작 시간</span>
-      <button class="modal-close" onclick="closeModal()">취소</button>
-    </div>
-    <div class="modal-body">
-      <div class="time-list" id="timeOptionsList">
-        <!-- Dynamic options -->
+  <!-- Time Picker Modal (Moved inside #app) -->
+  <div class="modal-overlay" id="timeModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title" id="modalTitle">알림 시작 시간</span>
+        <button class="modal-close" onclick="closeModal()">취소</button>
+      </div>
+      <div class="modal-body">
+        <div class="time-list" id="timeOptionsList">
+          <!-- Dynamic options -->
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<div class="drink-toast" id="drinkToast">물 마셨어요! 💧</div>
+  <div class="drink-toast" id="drinkToast">물 마셨어요! 💧</div>
+
+</div>
 
 <script src="/app.js"></script>
 </body>

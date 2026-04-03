@@ -179,6 +179,7 @@ html, body {
   color: var(--text-muted);
   scroll-snap-align: center;
 }
+.picker-spacer { height: 40px; pointer-events: none; }
 .picker-item.selected { color: var(--text); font-weight: 700; font-size: 22px; }
 .picker-selection {
   position: absolute;
