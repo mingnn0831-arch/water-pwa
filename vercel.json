@@ -1,10 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/send-push",
-      "schedule": "*/30 * * * *"
-    }
-  ],
   "headers": [
     {
       "source": "/sw.js",
