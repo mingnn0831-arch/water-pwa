@@ -27,11 +27,11 @@ self.addEventListener('push', e => {
   const now = new Date();
   const currentMin = now.getHours() * 60 + now.getMinutes();
 
-  const inInactiveWindow = sleepMin > wakeMin
-    ? currentMin >= wakeMin && currentMin < sleepMin
-    : currentMin >= wakeMin || currentMin < sleepMin;
+  const isActive = sleepMin > wakeMin
+    ? (currentMin >= wakeMin && currentMin < sleepMin)
+    : (currentMin >= wakeMin || currentMin < sleepMin);
 
-  if (inInactiveWindow) return;
+  if (!isActive) return;
 
   e.waitUntil(
     self.registration.showNotification('물 마실 시간이에요!', {

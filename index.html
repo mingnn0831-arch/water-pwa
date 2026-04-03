@@ -45,15 +45,15 @@
       <div class="stat-lbl">목표 횟수</div>
     </div>
     <div class="stat-card">
-      <div class="stat-num" id="inactiveHoursEl">0h</div>
-      <div class="stat-lbl">비활성 시간</div>
+      <div class="stat-num" id="activeHoursEl">0h</div>
+      <div class="stat-lbl">활성 시간</div>
     </div>
   </div>
 
   <div class="card">
     <div class="card-label">
-      알림 비활성 시간
-      <span class="badge-sleep">알림 안 옴</span>
+      알림 활성 시간
+      <span class="badge-sleep" style="background:#e7f5ff; color:#228be6;">알림 중</span>
     </div>
 
     <div class="timeline-wrap">
@@ -70,12 +70,12 @@
     <div class="time-row">
       <div class="time-col">
         <div class="time-col-lbl">시작 시간</div>
-        <select class="time-select" id="wakeSelect"></select>
+        <button class="time-btn" id="wakeBtn">오전 07:00</button>
       </div>
       <div class="time-arrow">→</div>
       <div class="time-col">
         <div class="time-col-lbl">종료 시간</div>
-        <select class="time-select" id="sleepSelect"></select>
+        <button class="time-btn" id="sleepBtn">오후 11:30</button>
       </div>
     </div>
   </div>
@@ -102,18 +102,39 @@
         <div class="picker-item" data-val="100">100분</div>
         <div class="picker-item" data-val="110">110분</div>
         <div class="picker-item" data-val="120">120분</div>
+        <div class="picker-item" data-val="130">130분</div>
+        <div class="picker-item" data-val="140">140분</div>
+        <div class="picker-item" data-val="150">150분</div>
+        <div class="picker-item" data-val="160">160분</div>
+        <div class="picker-item" data-val="170">170분</div>
+        <div class="picker-item" data-val="180">180분</div>
       </div>
       <div class="picker-selection"></div>
     </div>
     <div class="picker-hint">위아래로 밀어서 선택</div>
   </div>
 
-  <div class="test-section">
-    <button class="test-btn" id="testPushBtn">🔔 알림 테스트 (5초 후)</button>
-  </div>
-  
   <button class="toggle-btn inactive" id="toggleBtn" onclick="toggleAlarm()">알림 시작하기</button>
 
+  <div class="footer-links">
+    <button class="test-link" id="testPushBtn">알림 테스트 (5초 후)</button>
+  </div>
+
+</div>
+
+<!-- Time Picker Modal -->
+<div class="modal-overlay" id="timeModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">알림 시작 시간</span>
+      <button class="modal-close" onclick="closeModal()">취소</button>
+    </div>
+    <div class="modal-body">
+      <div class="time-list" id="timeOptionsList">
+        <!-- Dynamic options -->
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="drink-toast" id="drinkToast">물 마셨어요! 💧</div>

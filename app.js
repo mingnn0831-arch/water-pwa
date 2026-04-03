@@ -15,8 +15,8 @@ const KEYS = {
 /* ── Defaults ── */
 const DEFAULTS = {
   interval: 60,
-  wake: 420,    // 07:00 (Inactive Start)
-  sleep: 1410,  // 23:30 (Inactive End)
+  wake: 420,    // 07:00 (Active Start)
+  sleep: 1320,  // 22:00 (Active End)
 };
 
 /* ── State ── */
@@ -30,11 +30,12 @@ let state = {
 };
 
 let swReg = null;
+let currentModalTarget = null; // 'wake' or 'sleep'
 
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', async () => {
   initCount();
-  buildSelects();
+  initUI();
   renderAll();
   await registerSW();
   checkURLParams();
@@ -61,7 +62,7 @@ function checkURLParams() {
   }
 }
 
-/* ── Count (with daily reset) ── */
+/* ── Count ── */
 function initCount() {
   const today = new Date().toISOString().slice(0, 10);
   const savedDate = localStorage.getItem(KEYS.date);
@@ -79,81 +80,185 @@ function logDrink() {
   showToast('물 마셨어요! 💧');
 }
 
-/* ── Select Options ── */
-function buildSelects() {
-  const wakeEl = document.getElementById('wakeSelect');
-  const sleepEl = document.getElementById('sleepSelect');
+/* ── UI Logic ── */
+function initUI() {
+  // Modal toggle
+  document.getElementById('wakeBtn').addEventListener('click', () => openModal('wake'));
+  document.getElementById('sleepBtn').addEventListener('click', () => openModal('sleep'));
 
-  const options = [];
-  for (let min = 0; min <= 1440; min += 30) {
-    let label = '';
-    const h = Math.floor(min / 60);
-    const m = min % 60;
-    if (min === 0) label = '오전 12:00 (자정)';
-    else if (min === 720) label = '오후 12:00 (정오)';
-    else if (min === 1440) label = '오전 12:00 (자정)';
-    else {
-      const ampm = h < 12 ? '오전' : '오후';
-      let hh = h % 12; if (hh === 0) hh = 12;
-      label = `${ampm} ${hh}:${String(m).padStart(2, '0')}`;
-    }
-    options.push([min, label]);
-  }
-
-  options.forEach(([min, label]) => {
-    const opt1 = document.createElement('option');
-    opt1.value = min; opt1.textContent = label;
-    wakeEl.appendChild(opt1);
-
-    const opt2 = document.createElement('option');
-    opt2.value = min; opt2.textContent = label;
-    sleepEl.appendChild(opt2);
-  });
-
-  // Explicitly set values after appending
-  wakeEl.value = state.wakeMin;
-  sleepEl.value = state.sleepMin;
-
-  wakeEl.addEventListener('change', () => {
-    state.wakeMin = parseInt(wakeEl.value);
-    localStorage.setItem(KEYS.wake, state.wakeMin);
-    if (state.active) scheduleNext();
-    updateTimeline();
-    updateStats();
-  });
-  sleepEl.addEventListener('change', () => {
-    state.sleepMin = parseInt(sleepEl.value);
-    localStorage.setItem(KEYS.sleep, state.sleepMin);
-    if (state.active) scheduleNext();
-    updateTimeline();
-    updateStats();
-  });
-
+  // Interval picker
   const picker = document.getElementById('intervalPicker');
   picker.addEventListener('scroll', () => {
     clearTimeout(picker._timer);
     picker._timer = setTimeout(() => updateFromPicker(), 150);
   });
   
+  // Test Link
   const testBtn = document.getElementById('testPushBtn');
   if (testBtn) {
     testBtn.addEventListener('click', async () => {
-      testBtn.disabled = true;
-      testBtn.textContent = '5초 대기 중... 홈 화면으로 나가보세요!';
+      testBtn.textContent = '5초 후 알림 발송...';
       if ('Notification' in window && Notification.permission !== 'granted') {
         await Notification.requestPermission();
       }
       setTimeout(() => {
         triggerTestNotification();
-        testBtn.disabled = false;
-        testBtn.textContent = '🔔 알림 테스트 (5초 후)';
+        testBtn.textContent = '알림 테스트 (5초 후)';
       }, 5000);
     });
   }
 
+  // Close modal on overlay click
+  document.getElementById('timeModal').addEventListener('click', e => {
+    if (e.target.id === 'timeModal') closeModal();
+  });
+
   setTimeout(() => syncPickerToValue(), 100);
 }
 
+/* ── Modal Methods ── */
+function openModal(type) {
+  currentModalTarget = type;
+  const modal = document.getElementById('timeModal');
+  const title = document.getElementById('modalTitle');
+  const list = document.getElementById('timeOptionsList');
+  
+  title.textContent = type === 'wake' ? '알림 시작 시간' : '알림 종료 시간';
+  list.innerHTML = '';
+  
+  const currentVal = type === 'wake' ? state.wakeMin : state.sleepMin;
+  
+  for (let min = 0; min <= 1440; min += 30) {
+    const item = document.createElement('div');
+    item.className = 'time-item';
+    if (min === currentVal) item.classList.add('selected');
+    item.textContent = formatTimeLabel(min);
+    item.onclick = () => selectTime(min);
+    list.appendChild(item);
+  }
+  
+  modal.classList.add('show');
+}
+
+window.closeModal = function() {
+  document.getElementById('timeModal').classList.remove('show');
+};
+
+function selectTime(min) {
+  if (currentModalTarget === 'wake') {
+    state.wakeMin = min;
+    localStorage.setItem(KEYS.wake, min);
+  } else {
+    state.sleepMin = min;
+    localStorage.setItem(KEYS.sleep, min);
+  }
+  
+  closeModal();
+  if (state.active) scheduleNext();
+  renderAll();
+}
+
+function formatTimeLabel(min) {
+  if (min === 0 || min === 1440) return '오전 12:00 (자정)';
+  if (min === 720) return '오후 12:00 (정오)';
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  const ampm = h < 12 ? '오전' : '오후';
+  let hh = h % 12; if (hh === 0) hh = 12;
+  return `${ampm} ${hh}:${String(m).padStart(2, '0')}`;
+}
+
+/* ── Render Methods ── */
+function renderAll() {
+  updateStatus();
+  updateStats();
+  updateTimeline();
+  updateIntervalDisplay();
+  updateToggleBtn();
+  updateTimeButtons();
+}
+
+function updateTimeButtons() {
+  document.getElementById('wakeBtn').textContent = formatTimeLabel(state.wakeMin);
+  document.getElementById('sleepBtn').textContent = formatTimeLabel(state.sleepMin);
+}
+
+function updateStatus() {
+  const pill = document.getElementById('statusPill');
+  if (state.active) {
+    pill.textContent = '활성중';
+    pill.className = 'status-pill active';
+  } else {
+    pill.textContent = '꺼짐';
+    pill.className = 'status-pill inactive';
+  }
+}
+
+function updateStats() {
+  document.getElementById('todayCount').textContent = state.count;
+  const ah = calcActiveHours();
+  const maxC = calcMaxCount();
+  document.getElementById('activeHoursEl').textContent = ah.toFixed(1) + 'h';
+  document.getElementById('maxCountEl').textContent = maxC;
+}
+
+function updateTimeline() {
+  const w = state.wakeMin, s = state.sleepMin;
+  const total = 1440;
+  const bar = document.querySelector('.timeline-bar');
+  if (!bar) return;
+  bar.innerHTML = '';
+
+  if (s > w) {
+    // Normal case: Start < End
+    addTlSegment(bar, 0, w / total * 100, 'sleep');
+    addTlSegment(bar, w / total * 100, (s - w) / total * 100, 'active');
+    addTlSegment(bar, s / total * 100, (total - s) / total * 100, 'sleep');
+  } else {
+    // Wrap around: Start > End
+    addTlSegment(bar, 0, s / total * 100, 'active');
+    addTlSegment(bar, s / total * 100, (w - s) / total * 100, 'sleep');
+    addTlSegment(bar, w / total * 100, (total - w) / total * 100, 'active');
+  }
+
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const nowPct = nowMin / total * 100;
+  const nowEl = document.createElement('div');
+  nowEl.className = 'tl-now';
+  nowEl.style.left = nowPct + '%';
+  bar.appendChild(nowEl);
+}
+
+function addTlSegment(bar, left, width, type) {
+  if (width <= 0) return;
+  const el = document.createElement('div');
+  el.className = `tl-${type}`;
+  el.style.left = left + '%';
+  el.style.width = width + '%';
+  bar.appendChild(el);
+}
+
+function updateIntervalDisplay() {
+  const min = state.interval;
+  const el = document.getElementById('intervalVal');
+  if (el) el.textContent = min;
+  const sub = document.getElementById('intervalSub');
+  if (sub) sub.textContent = '하루 ' + calcMaxCount() + '회 예상';
+}
+
+function updateToggleBtn() {
+  const btn = document.getElementById('toggleBtn');
+  if (!btn) return;
+  if (state.active) {
+    btn.textContent = '알림 끄기';
+    btn.className = 'toggle-btn active';
+  } else {
+    btn.textContent = '알림 시작하기';
+    btn.className = 'toggle-btn inactive';
+  }
+}
+
+/* ── Picker Logic ── */
 function updateFromPicker() {
   const picker = document.getElementById('intervalPicker');
   const items = picker.querySelectorAll('.picker-item');
@@ -174,6 +279,7 @@ function updateFromPicker() {
     localStorage.setItem(KEYS.interval, state.interval);
     if (state.active) scheduleNext();
     updateIntervalDisplay();
+    updateStats(); // Update max count
   }
 }
 
@@ -184,116 +290,11 @@ function syncPickerToValue() {
     if (parseInt(item.dataset.val) === state.interval) {
       picker.scrollTop = item.offsetTop - 40;
       item.classList.add('selected');
-    } else {
-      item.classList.remove('selected');
     }
   });
 }
 
-function triggerTestNotification() {
-  const title = '물 마실 시간이에요!';
-  if (swReg?.active) {
-    swReg.active.showNotification(title, {
-      body: '알림 테스트입니다. 정상적으로 작동하고 있어요!',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: 'test-push',
-    });
-  } else if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, {
-      body: '테스트 알림입니다.',
-      icon: '/icon-192.png',
-    });
-  }
-}
-
-/* ── Render All ── */
-function renderAll() {
-  updateStatus();
-  updateStats();
-  updateTimeline();
-  updateIntervalDisplay();
-  updateToggleBtn();
-}
-
-/* ── Status Pill ── */
-function updateStatus() {
-  const pill = document.getElementById('statusPill');
-  if (state.active) {
-    pill.textContent = '활성중';
-    pill.className = 'status-pill active';
-  } else {
-    pill.textContent = '꺼짐';
-    pill.className = 'status-pill inactive';
-  }
-}
-
-/* ── Stats ── */
-function updateStats() {
-  document.getElementById('todayCount').textContent = state.count;
-  const inH = calcInactiveHours();
-  const maxC = calcMaxCount();
-  document.getElementById('inactiveHoursEl').textContent = inH.toFixed(1) + 'h';
-  document.getElementById('maxCountEl').textContent = maxC;
-}
-
-/* ── Timeline ── */
-function updateTimeline() {
-  const w = state.wakeMin, s = state.sleepMin;
-  const total = 1440;
-  const bar = document.querySelector('.timeline-bar');
-  if (!bar) return;
-  bar.innerHTML = '';
-
-  if (s > w) {
-    addTlSegment(bar, 0, w / total * 100, 'active');
-    addTlSegment(bar, w / total * 100, (s - w) / total * 100, 'sleep');
-    addTlSegment(bar, s / total * 100, (total - s) / total * 100, 'active');
-  } else {
-    addTlSegment(bar, 0, s / total * 100, 'sleep');
-    addTlSegment(bar, s / total * 100, (w - s) / total * 100, 'active');
-    addTlSegment(bar, w / total * 100, (total - w) / total * 100, 'sleep');
-  }
-
-  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-  const nowPct = nowMin / total * 100;
-  const nowEl = document.createElement('div');
-  nowEl.className = 'tl-now';
-  nowEl.style.left = nowPct + '%';
-  bar.appendChild(nowEl);
-}
-
-function addTlSegment(bar, left, width, type) {
-  if (width <= 0) return;
-  const el = document.createElement('div');
-  el.className = `tl-${type}`;
-  el.style.left = left + '%';
-  el.style.width = width + '%';
-  bar.appendChild(el);
-}
-
-/* ── Interval Display ── */
-function updateIntervalDisplay() {
-  const min = state.interval;
-  const el = document.getElementById('intervalVal');
-  if (el) el.textContent = min;
-  const sub = document.getElementById('intervalSub');
-  if (sub) sub.textContent = '하루 ' + calcMaxCount() + '회 예상';
-}
-
-/* ── Toggle ── */
-function updateToggleBtn() {
-  const btn = document.getElementById('toggleBtn');
-  if (!btn) return;
-  if (state.active) {
-    btn.textContent = '알림 끄기';
-    btn.className = 'toggle-btn active';
-  } else {
-    btn.textContent = '알림 시작하기';
-    btn.className = 'toggle-btn inactive';
-  }
-}
-
+/* ── Notification Methods ── */
 window.toggleAlarm = async function() {
   if (!state.active) {
     const granted = await requestNotificationPermission();
@@ -301,7 +302,6 @@ window.toggleAlarm = async function() {
       document.getElementById('permBanner').classList.add('show');
       return;
     }
-    document.getElementById('permBanner').classList.remove('show');
     state.active = true;
     scheduleNext();
   } else {
@@ -310,19 +310,15 @@ window.toggleAlarm = async function() {
     localStorage.removeItem(KEYS.nextTime);
   }
   localStorage.setItem(KEYS.active, state.active);
-  updateStatus();
-  updateToggleBtn();
+  renderAll();
 };
 
-/* ── Notification Permission ── */
 async function requestNotificationPermission() {
   if (!('Notification' in window)) return false;
   if (Notification.permission === 'granted') return true;
-  const result = await Notification.requestPermission();
-  return result === 'granted';
+  return (await Notification.requestPermission()) === 'granted';
 }
 
-/* ── Schedule Next ── */
 function scheduleNext() {
   const now = new Date();
   const nextTime = new Date(now.getTime() + state.interval * 60 * 1000);
@@ -340,20 +336,18 @@ function scheduleNext() {
   subscribeAndSendToServer();
 }
 
-/* ── Push Subscription ── */
 async function subscribeAndSendToServer() {
   if (!swReg) return;
   try {
-    const VAPID_PUBLIC_KEY = window.VAPID_PUBLIC_KEY || '';
-    if (!VAPID_PUBLIC_KEY) return;
+    const pubKey = window.VAPID_PUBLIC_KEY || '';
+    if (!pubKey) return;
     let sub = await swReg.pushManager.getSubscription();
     if (!sub) {
       sub = await swReg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(pubKey),
       });
     }
-    localStorage.setItem(KEYS.sub, JSON.stringify(sub));
     await fetch('/api/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -364,7 +358,7 @@ async function subscribeAndSendToServer() {
         sleepMin: state.sleepMin,
       }),
     });
-  } catch(e) { console.warn('Push subscription failed:', e); }
+  } catch(e) { console.warn('Push sync failed:', e); }
 }
 
 function urlBase64ToUint8Array(base64String) {
@@ -374,64 +368,53 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
-function isInActiveWindow() {
-  const now = new Date();
-  const cur = now.getHours() * 60 + now.getMinutes();
-  const start = state.wakeMin, end = state.sleepMin;
-  const isInactive = end > start ? (cur >= start && cur < end) : (cur >= start || cur < end);
-  return !isInactive;
-}
-
-function triggerLocalNotification() {
-  if (!isInActiveWindow()) return;
+function triggerTestNotification() {
   const title = '물 마실 시간이에요!';
-  const body = '지금 물 한 잔 마셔요. 건강한 하루를 위해!';
   if (swReg?.active) {
-    swReg.showNotification(title, {
-      body: body,
+    swReg.active.showNotification(title, {
+      body: '알림 테스트입니다. 정상적으로 작동하고 있어요!',
       icon: '/icon-192.png',
       badge: '/icon-192.png',
-      tag: 'water-reminder',
-      renotify: true,
-    });
-  } else if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, {
-      body: body,
-      icon: '/icon-192.png',
-      tag: 'water-reminder',
+      tag: 'test-push',
     });
   }
 }
 
-function calcInactiveHours() {
+/* ── Logic Helpers ── */
+function isInActiveWindow() {
+  const now = new Date();
+  const cur = now.getHours() * 60 + now.getMinutes();
   const start = state.wakeMin, end = state.sleepMin;
-  const inactiveMin = end > start ? end - start : (1440 - start) + end;
-  return inactiveMin / 60;
+  
+  const isActive = end > start
+    ? (cur >= start && cur < end)
+    : (cur >= start || cur < end);
+    
+  return isActive;
 }
 
 function calcActiveHours() {
-  return 24 - calcInactiveHours();
+  const start = state.wakeMin, end = state.sleepMin;
+  const activeMin = end > start ? end - start : (1440 - start) + end;
+  return activeMin / 60;
 }
 
 function calcMaxCount() {
   const ah = calcActiveHours();
-  return Math.floor(ah / (state.interval / 60));
+  const intervalH = state.interval / 60;
+  return Math.max(1, Math.floor(ah / intervalH));
 }
 
 function showToast(msg) {
   const toast = document.getElementById('drinkToast');
   if (toast) {
-    toast.textContent = msg;
-    toast.classList.add('show');
+    toast.textContent = msg; toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 2500);
   }
 }
 
 function checkInstallHint() {
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const isStandalone = window.navigator.standalone;
-  const el = document.getElementById('installHint');
-  if (isIOS && !isStandalone && el) {
-    el.classList.add('show');
+  if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone) {
+    document.getElementById('installHint')?.classList.add('show');
   }
 }
