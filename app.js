@@ -376,6 +376,7 @@ function triggerTestNotification() {
     badge: '/icon-192.png',
     tag: 'test-push',
     renotify: true,
+    actions: [{ action: 'drink', title: '마셨어요!' }]
   };
 
   if (swReg && 'showNotification' in swReg) {
