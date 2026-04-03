@@ -10,9 +10,9 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <style>
-    body { background: #F8F9FA; color: #212529; font-family: -apple-system, sans-serif; visibility: hidden; }
-    .header { display: flex; justify-content: space-between; padding: 60px 20px 10px; }
-    #app { visibility: visible; }
+    body { background: #F8F9FA; color: #212529; font-family: -apple-system, sans-serif; visibility: hidden; margin: 0; }
+    .header { display: flex; justify-content: space-between; padding: 20px 20px 10px; }
+    #app { visibility: visible; padding: 0 20px 40px; }
   </style>
   <link rel="stylesheet" href="/style.css">
   <title>물 마시기 알림</title>
@@ -35,8 +35,6 @@
     알림 권한이 필요합니다. 브라우저 설정에서 알림을 허용해 주세요.
   </div>
 
-  <!-- Countdown section removed as requested -->
-
   <div class="stats-row">
     <div class="stat-card">
       <div class="stat-num" id="todayCount">0</div>
@@ -47,11 +45,12 @@
       <div class="stat-lbl">목표 횟수</div>
     </div>
     <div class="stat-card">
-      <div class="stat-num" id="activeHoursEl">0h</div>
-      <div class="stat-lbl">활성 시간</div>
+      <div class="stat-num" id="inactiveHoursEl">0h</div>
+      <div class="stat-lbl">비활성 시간</div>
     </div>
   </div>
 
+  <div class="card">
     <div class="card-label">
       알림 비활성 시간
       <span class="badge-sleep">알림 안 옴</span>
@@ -79,16 +78,14 @@
         <select class="time-select" id="sleepSelect"></select>
       </div>
     </div>
-
-    <!-- Summary removed as requested -->
   </div>
 
   <div class="card">
     <div class="card-label">알림 간격</div>
     <div class="interval-header">
       <div>
-        <span class="interval-val" id="intervalVal">1</span>
-        <span class="interval-unit" id="intervalUnit">시간마다</span>
+        <span class="interval-val" id="intervalVal">--</span>
+        <span class="interval-unit" id="intervalUnit">분마다</span>
       </div>
       <div class="interval-sub" id="intervalSub">하루 0회 예상</div>
     </div>
