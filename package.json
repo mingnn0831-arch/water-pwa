@@ -1,0 +1,13 @@
+{
+  "name": "water-reminder-pwa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "web-push": "^3.6.7",
+    "@vercel/kv": "^2.0.0"
+  },
+  "scripts": {
+    "generate-vapid": "node -e \"const wp=require('web-push'); const keys=wp.generateVAPIDKeys(); console.log('PUBLIC:', keys.publicKey); console.log('PRIVATE:', keys.privateKey);\""
+  }
+}

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="물 알림">
+  <meta name="theme-color" content="#0A1628">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="stylesheet" href="/style.css">
+  <title>물 마시기 알림</title>
+  <script>window.VAPID_PUBLIC_KEY = 'BCo_IV9cZP0d8KF9rMngj7HuIaJJufusrgLRsxZDafYCVh-1WkOkfTAungHHFGVHHN7YSufqR-Aug4tx_SxUtiQ';</script>
+</head>
+<body>
+<div id="app">
+
+  <div class="header">
+    <span class="header-title">물 마시기</span>
+    <span class="status-pill inactive" id="statusPill">꺼짐</span>
+  </div>
+
+  <div class="install-hint" id="installHint">
+    <strong>홈 화면에 추가하면 백그라운드 알림이 활성화됩니다.</strong><br>
+    Safari → 공유 버튼 → 홈 화면에 추가 → 추가
+  </div>
+
+  <div class="permission-banner" id="permBanner">
+    알림 권한이 필요합니다. 브라우저 설정에서 알림을 허용해 주세요.
+  </div>
+
+  <div class="countdown-section">
+    <div class="countdown-ring">
+      <svg class="ring-svg" width="180" height="180" viewBox="0 0 180 180">
+        <circle class="ring-track" cx="90" cy="90" r="80"/>
+        <circle class="ring-progress inactive" cx="90" cy="90" r="80"/>
+      </svg>
+      <div class="countdown-inner">
+        <div class="countdown-num" id="countdownNum">--:--</div>
+        <div class="countdown-label">다음 알림까지</div>
+      </div>
+    </div>
+    <div class="next-alarm-text" id="nextAlarmText"></div>
+    <div class="sleep-notice" id="sleepNotice"></div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-num" id="todayCount">0</div>
+      <div class="stat-lbl">오늘 음수</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="maxCountEl">0</div>
+      <div class="stat-lbl">목표 횟수</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="activeHoursEl">0h</div>
+      <div class="stat-lbl">활성 시간</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">
+      알림 활성 시간
+      <span class="badge-sleep">수면 제외</span>
+    </div>
+
+    <div class="timeline-wrap">
+      <div class="timeline-bar"></div>
+      <div class="timeline-labels">
+        <span>0시</span>
+        <span>6시</span>
+        <span>12시</span>
+        <span>18시</span>
+        <span>24시</span>
+      </div>
+    </div>
+
+    <div class="time-row">
+      <div class="time-col">
+        <div class="time-col-lbl">기상 시각</div>
+        <select class="time-select" id="wakeSelect"></select>
+      </div>
+      <div class="time-arrow">→</div>
+      <div class="time-col">
+        <div class="time-col-lbl">취침 시각</div>
+        <select class="time-select" id="sleepSelect"></select>
+      </div>
+    </div>
+
+    <div class="active-summary" id="activeSummary"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">알림 간격</div>
+    <div class="interval-header">
+      <div>
+        <span class="interval-val" id="intervalVal">1</span>
+        <span class="interval-unit" id="intervalUnit">시간마다</span>
+      </div>
+      <div class="interval-sub" id="intervalSub">하루 0회 예상</div>
+    </div>
+    <input type="range" id="intervalSlider" min="1" max="8" step="1" value="2">
+    <div class="range-ticks">
+      <span>30분</span><span>1시간</span><span>1.5h</span>
+      <span>2시간</span><span>2.5h</span><span>3시간</span>
+      <span>3.5h</span><span>4시간</span>
+    </div>
+  </div>
+
+  <button class="toggle-btn inactive" id="toggleBtn" onclick="toggleAlarm()">알림 켜기</button>
+
+</div>
+
+<div class="drink-toast" id="drinkToast">물 마셨어요! 💧</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
