@@ -31,6 +31,7 @@ let state = {
 
 let swReg = null;
 let currentModalTarget = null; // 'wake' or 'sleep'
+let localTimer = null; // Local Notification Timer
 
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', async () => {
@@ -102,7 +103,7 @@ function initUI() {
         await Notification.requestPermission();
       }
       setTimeout(() => {
-        triggerTestNotification();
+        showLocalNotification('물 마실 시간이에요!', '알림 테스트입니다. 정상적으로 작동하고 있어요!');
         testBtn.textContent = '알림 테스트 (5초 후)';
       }, 5000);
     });
@@ -114,6 +115,7 @@ function initUI() {
   });
 
   setTimeout(() => syncPickerToValue(), 100);
+  checkAndRunLocalTimer(); // Resume existing timer on launch
 }
 
 /* ── Modal Methods ── */
@@ -313,6 +315,7 @@ window.toggleAlarm = async function() {
     state.active = false;
     state.nextTime = null;
     localStorage.removeItem(KEYS.nextTime);
+    if (localTimer) clearTimeout(localTimer);
   }
   localStorage.setItem(KEYS.active, state.active);
   renderAll();
@@ -338,7 +341,41 @@ function scheduleNext() {
       sleepMin: state.sleepMin,
     });
   }
+
+  // Start Local Timer (Option 2)
+  if (localTimer) clearTimeout(localTimer);
+  const msecToWait = nextTime.getTime() - now.getTime();
+  if (msecToWait > 0) {
+    localTimer = setTimeout(() => {
+      if (state.active && isInActiveWindow()) {
+        showLocalNotification();
+        scheduleNext(); // Recursive call for next interval
+      }
+    }, msecToWait);
+  }
+
   subscribeAndSendToServer();
+}
+
+function checkAndRunLocalTimer() {
+  if (!state.active || !state.nextTime) return;
+  const now = new Date();
+  const next = new Date(state.nextTime);
+  
+  if (next > now) {
+    // Schedule for the remaining time
+    const msec = next.getTime() - now.getTime();
+    if (localTimer) clearTimeout(localTimer);
+    localTimer = setTimeout(() => {
+      if (state.active && isInActiveWindow()) {
+        showLocalNotification();
+        scheduleNext();
+      }
+    }, msec);
+  } else {
+    // Already passed while offline? Schedule new one
+    scheduleNext();
+  }
 }
 
 async function subscribeAndSendToServer() {
@@ -373,23 +410,29 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
-function triggerTestNotification() {
-  const title = '물 마실 시간이에요!';
+function showLocalNotification(title, body) {
+  const defaultTitle = '물 마실 시간이에요!';
+  const defaultBody = '지금 물 한 잔 마셔요. 건강한 하루를 위해!';
+  
+  const finalTitle = title || defaultTitle;
+  const finalBody = body || defaultBody;
+
   const options = {
-    body: '알림 테스트입니다. 정상적으로 작동하고 있어요!',
+    body: finalBody,
     icon: '/icon-192.png',
     badge: '/icon-192.png',
-    tag: 'test-push',
+    tag: 'water-reminder',
     renotify: true,
+    vibrate: [200, 100, 200],
     actions: [{ action: 'drink', title: '마셨어요!' }]
   };
 
   if (swReg && 'showNotification' in swReg) {
-    swReg.showNotification(title, options);
+    swReg.showNotification(finalTitle, options);
   } else if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, options);
+    new Notification(finalTitle, options);
   } else {
-    alert('알림을 보낼 수 있는 상태가 아닙니다. 서비스 워커를 확인해주세요.');
+    console.warn('Notification failed: Permission not granted or SW not ready.');
   }
 }
 
