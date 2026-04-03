@@ -370,13 +370,20 @@ function urlBase64ToUint8Array(base64String) {
 
 function triggerTestNotification() {
   const title = '물 마실 시간이에요!';
-  if (swReg?.active) {
-    swReg.active.showNotification(title, {
-      body: '알림 테스트입니다. 정상적으로 작동하고 있어요!',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: 'test-push',
-    });
+  const options = {
+    body: '알림 테스트입니다. 정상적으로 작동하고 있어요!',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: 'test-push',
+    renotify: true,
+  };
+
+  if (swReg && 'showNotification' in swReg) {
+    swReg.showNotification(title, options);
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, options);
+  } else {
+    alert('알림을 보낼 수 있는 상태가 아닙니다. 서비스 워커를 확인해주세요.');
   }
 }
 
