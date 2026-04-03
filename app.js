@@ -275,13 +275,18 @@ function updateFromPicker() {
   closest.classList.add('selected');
   const val = parseInt(closest.dataset.val);
   if (state.interval !== val) {
-    state.interval = val;
-    localStorage.setItem(KEYS.interval, state.interval);
-    if (state.active) scheduleNext();
-    updateIntervalDisplay();
-    updateStats(); // Update max count
+    if (confirm(`알림 간격을 ${val}분으로 변경할까요?`)) {
+      state.interval = val;
+      localStorage.setItem(KEYS.interval, state.interval);
+      if (state.active) scheduleNext();
+      updateIntervalDisplay();
+      updateStats();
+    } else {
+      syncPickerToValue();
+    }
   }
 }
+
 
 function syncPickerToValue() {
   const picker = document.getElementById('intervalPicker');
