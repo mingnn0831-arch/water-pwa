@@ -15,8 +15,8 @@ const KEYS = {
 /* ── Defaults ── */
 const DEFAULTS = {
   interval: 60,
-  wake: 420,    // 07:00
-  sleep: 1410,  // 23:30
+  wake: 420,    // 07:00 (Inactive Start)
+  sleep: 1410,  // 23:30 (Inactive End)
 };
 
 /* ── State ── */
@@ -85,28 +85,34 @@ function buildSelects() {
   const wakeEl = document.getElementById('wakeSelect');
   const sleepEl = document.getElementById('sleepSelect');
 
-  const wakeOptions = [
-    [300,'오전 5:00'], [330,'오전 5:30'], [360,'오전 6:00'],
-    [390,'오전 6:30'], [420,'오전 7:00'], [450,'오전 7:30'],
-    [480,'오전 8:00'], [510,'오전 8:30'], [540,'오전 9:00'],
-  ];
-  const sleepOptions = [
-    [1260,'오후 9:00'], [1290,'오후 9:30'], [1320,'오후 10:00'],
-    [1350,'오후 10:30'], [1380,'오후 11:00'], [1410,'오후 11:30'],
-    [1440,'자정 12:00'],
-  ];
+  const options = [];
+  for (let min = 0; min <= 1440; min += 30) {
+    let label = '';
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    
+    if (min === 0) label = '오전 12:00 (자정)';
+    else if (min === 720) label = '오후 12:00 (정오)';
+    else if (min === 1440) label = '오전 12:00 (자정)';
+    else {
+      const ampm = h < 12 ? '오전' : '오후';
+      let hh = h % 12;
+      if (hh === 0) hh = 12;
+      label = `${ampm} ${hh}:${String(m).padStart(2, '0')}`;
+    }
+    options.push([min, label]);
+  }
 
-  wakeOptions.forEach(([min, label]) => {
-    const opt = document.createElement('option');
-    opt.value = min; opt.textContent = label;
-    if (min === state.wakeMin) opt.selected = true;
-    wakeEl.appendChild(opt);
-  });
-  sleepOptions.forEach(([min, label]) => {
-    const opt = document.createElement('option');
-    opt.value = min; opt.textContent = label;
-    if (min === state.sleepMin) opt.selected = true;
-    sleepEl.appendChild(opt);
+  options.forEach(([min, label]) => {
+    const opt1 = document.createElement('option');
+    opt1.value = min; opt1.textContent = label;
+    if (min === state.wakeMin) opt1.selected = true;
+    wakeEl.appendChild(opt1);
+
+    const opt2 = document.createElement('option');
+    opt2.value = min; opt2.textContent = label;
+    if (min === state.sleepMin) opt2.selected = true;
+    sleepEl.appendChild(opt2);
   });
 
   wakeEl.addEventListener('change', () => {
@@ -114,14 +120,12 @@ function buildSelects() {
     localStorage.setItem(KEYS.wake, state.wakeMin);
     if (state.active) scheduleNext();
     updateTimeline();
-    updateActiveSummary();
   });
   sleepEl.addEventListener('change', () => {
     state.sleepMin = parseInt(sleepEl.value);
     localStorage.setItem(KEYS.sleep, state.sleepMin);
     if (state.active) scheduleNext();
     updateTimeline();
-    updateActiveSummary();
   });
 
   const picker = document.getElementById('intervalPicker');
@@ -191,7 +195,7 @@ function syncPickerToValue() {
 function triggerTestNotification() {
   const title = '물 마실 시간이에요!';
   if ('serviceWorker' in navigator && swReg?.active) {
-    swReg.showNotification(title, {
+    swReg.active.showNotification(title, {
       body: '알림 테스트입니다. 정상적으로 작동하고 있어요!',
       icon: '/icon-192.png',
       badge: '/icon-192.png',
@@ -211,9 +215,7 @@ function renderAll() {
   updateStats();
   updateTimeline();
   updateIntervalDisplay();
-  updateActiveSummary();
   updateToggleBtn();
-  updateCountdown();
   if (state.active) startCountdownTimer();
 }
 
@@ -233,8 +235,9 @@ function updateStatus() {
 function updateStats() {
   document.getElementById('todayCount').textContent = state.count;
   const ah = calcActiveHours();
+  const maxC = calcMaxCount();
   document.getElementById('activeHoursEl').textContent = ah.toFixed(1) + 'h';
-  document.getElementById('maxCountEl').textContent = calcMaxCount();
+  document.getElementById('maxCountEl').textContent = maxC;
 }
 
 /* ── Timeline ── */
@@ -246,13 +249,13 @@ function updateTimeline() {
   bar.innerHTML = '';
 
   if (s > w) {
-    addTlSegment(bar, 0, w / total * 100, 'sleep');
-    addTlSegment(bar, w / total * 100, (s - w) / total * 100, 'active');
-    addTlSegment(bar, s / total * 100, (total - s) / total * 100, 'sleep');
+    addTlSegment(bar, 0, w / total * 100, 'active');
+    addTlSegment(bar, w / total * 100, (s - w) / total * 100, 'sleep');
+    addTlSegment(bar, s / total * 100, (total - s) / total * 100, 'active');
   } else {
-    addTlSegment(bar, 0, s / total * 100, 'active');
-    addTlSegment(bar, s / total * 100, (w - s) / total * 100, 'sleep');
-    addTlSegment(bar, w / total * 100, (total - w) / total * 100, 'active');
+    addTlSegment(bar, 0, s / total * 100, 'sleep');
+    addTlSegment(bar, s / total * 100, (w - s) / total * 100, 'active');
+    addTlSegment(bar, w / total * 100, (total - w) / total * 100, 'sleep');
   }
 
   const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
@@ -272,17 +275,12 @@ function addTlSegment(bar, left, width, type) {
   bar.appendChild(el);
 }
 
-/* ── Summary ── */
-function updateActiveSummary() {
-  // UI section removed as requested
-}
-
 /* ── Interval Display ── */
 function updateIntervalDisplay() {
   const min = state.interval;
   document.getElementById('intervalVal').textContent = min;
   document.getElementById('intervalUnit').textContent = '분마다';
-  document.getElementById('intervalSub').textContent = '하루 ' + calcMaxCount() + '회 호출됨';
+  document.getElementById('intervalSub').textContent = '하루 ' + calcMaxCount() + '회 예상';
 }
 
 /* ── Toggle ── */
@@ -292,7 +290,7 @@ function updateToggleBtn() {
     btn.textContent = '알림 끄기';
     btn.className = 'toggle-btn active';
   } else {
-    btn.textContent = '알림 켜기';
+    btn.textContent = '알림 시작하기';
     btn.className = 'toggle-btn inactive';
   }
 }
@@ -317,7 +315,6 @@ window.toggleAlarm = async function() {
   localStorage.setItem(KEYS.active, state.active);
   updateStatus();
   updateToggleBtn();
-  updateCountdown();
 };
 
 /* ── Notification Permission ── */
@@ -345,7 +342,6 @@ function scheduleNext() {
   }
 
   subscribeAndSendToServer();
-  updateCountdown();
 }
 
 /* ── Push Subscription ── */
@@ -368,8 +364,8 @@ async function subscribeAndSendToServer() {
       body: JSON.stringify({
         subscription: sub,
         interval: state.interval,
-        wakeMin: state.wakeMin,  // This is now "Inactive Start"
-        sleepMin: state.sleepMin, // This is now "Inactive End"
+        wakeMin: state.wakeMin,
+        sleepMin: state.sleepMin,
       }),
     });
   } catch(e) { console.warn('Push subscription failed:', e); }
@@ -386,7 +382,6 @@ function urlBase64ToUint8Array(base64String) {
 function startCountdownTimer() {
   clearCountdownTimer();
   countdownTimer = setInterval(() => {
-    updateCountdown();
     if (state.active && state.nextTime && new Date() >= state.nextTime) {
       triggerLocalNotification();
       logDrink();
@@ -400,16 +395,13 @@ function clearCountdownTimer() {
   countdownTimer = null;
 }
 
-function updateCountdown() {
-  // UI section removed as requested
-}
-
+/* ── Helpers ── */
 function isInActiveWindow() {
   const now = new Date();
   const cur = now.getHours() * 60 + now.getMinutes();
   const start = state.wakeMin, end = state.sleepMin;
   
-  // start = Inactive Start, end = Inactive End
+  // start-end is the INACTIVE range
   const isInactive = end > start
     ? (cur >= start && cur < end)
     : (cur >= start || cur < end);
@@ -424,7 +416,7 @@ function triggerLocalNotification() {
   const title = '물 마실 시간이에요!';
   const body = '지금 물 한 잔 마셔요. 건강한 하루를 위해!';
   
-  if ('serviceWorker' in navigator && swReg?.active) {
+  if (swReg?.active) {
     swReg.showNotification(title, {
       body: body,
       icon: '/icon-192.png',
@@ -432,21 +424,13 @@ function triggerLocalNotification() {
       tag: 'water-reminder',
       renotify: true,
     });
-  } else if (Notification.permission === 'granted') {
+  } else if ('Notification' in window && Notification.permission === 'granted') {
     new Notification(title, {
       body: body,
       icon: '/icon-192.png',
       tag: 'water-reminder',
     });
   }
-}
-
-/* ── Helpers ── */
-function isInActiveWindow() {
-  const now = new Date();
-  const cur = now.getHours() * 60 + now.getMinutes();
-  const w = state.wakeMin, s = state.sleepMin;
-  return s > w ? (cur >= w && cur < s) : (cur >= w || cur < s);
 }
 
 function calcActiveHours() {
@@ -458,15 +442,7 @@ function calcActiveHours() {
 
 function calcMaxCount() {
   const ah = calcActiveHours();
-  const intervalH = state.interval / 60;
-  return Math.floor(ah / intervalH);
-}
-
-function formatTime(date) {
-  const h = date.getHours(), m = date.getMinutes();
-  const ampm = h < 12 ? '오전' : '오후';
-  const hh = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${ampm} ${hh}:${String(m).padStart(2, '0')}`;
+  return Math.floor(ah / (state.interval / 60));
 }
 
 function showToast(msg) {

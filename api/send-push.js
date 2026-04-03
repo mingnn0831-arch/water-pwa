@@ -39,7 +39,7 @@ export default async function handler(req, res) {
       if (!inWindow) return;
 
       const payload = JSON.stringify({
-        title: '💧 물 마실 시간이에요!',
+        title: '물 마실 시간이에요!',
         body: '지금 물 한 잔 마셔요. 건강한 하루를 위해!',
         wakeMin,
         sleepMin,
